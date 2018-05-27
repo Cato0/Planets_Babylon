@@ -1,0 +1,244 @@
+﻿<!DOCTYPE html>
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>CGV-Aufgabe 1</title>
+    <script src="babylon.js"></script>
+    <script src="hand.js"></script>
+	<style type="text/css">
+        html,body,canvas {
+            width:100%;
+            height:100%;
+            padding:0;
+            margin:0;
+            overflow:hidden;
+        }
+    </style>
+</head>
+<body>
+    <canvas id="renderCanvas"></canvas>
+	<script>
+    // Check support
+    if (!BABYLON.Engine.isSupported()) {
+        window.alert('Browser not supported');
+    } else {
+
+	// BEGIN SETUP SCENE
+		var canvas = document.getElementById("renderCanvas");
+		var engine = new BABYLON.Engine(canvas, true);
+
+		var scene = new BABYLON.Scene(engine);
+		var camera = new BABYLON.ArcRotateCamera("ArcRotateCamera", -Math.PI/4.0, 0.25*Math.PI, 2.5, new BABYLON.Vector3(0, 0, 0), scene);
+
+		var sun = BABYLON.Mesh.CreateSphere("Sun", 10.0, 0.3, scene);
+		var earth = BABYLON.Mesh.CreateSphere("Earth", 30.0, 0.3, scene);
+		var moon = BABYLON.Mesh.CreateSphere("Moon", 20.0, 0.075, scene);
+		var pluto = BABYLON.Mesh.CreateSphere("Pluto",50.0,0.4, scene);
+		var jupiter = BABYLON.Mesh.CreateSphere("Jupiter",10.0,0.8, scene);
+
+		var material1 = new BABYLON.StandardMaterial("default1", scene);
+		material1.diffuseTexture = new BABYLON.Texture("assets/earth_t.jpg", scene);
+		material1.specularColor = new BABYLON.Color3(0,0,0);
+		material1.emissiveColor = new BABYLON.Color3(0.1,0.1,0.1);
+
+		var material2 = new BABYLON.StandardMaterial("default2", scene);
+		material2.diffuseTexture = new BABYLON.Texture("assets/moon_t.jpg", scene);
+		material2.specularColor = new BABYLON.Color3(0,0,0);
+		material2.emissiveColor = new BABYLON.Color3(0.1,0.1,0.1);
+
+		var material3 = new BABYLON.StandardMaterial("default3", scene);
+		material3.diffuseTexture = new BABYLON.Texture("assets/sun.jpg", scene);
+		material3.specularColor = new BABYLON.Color3(0,0,0);
+		material3.emissiveColor = new BABYLON.Color3(1,1,1);
+
+		var material4 = new BABYLON.StandardMaterial("default1", scene);
+		material4.diffuseTexture = new BABYLON.Texture("assets/pluto2.jpg", scene);
+		material4.specularColor = new BABYLON.Color3(0,0,0);
+		material4.emissiveColor = new BABYLON.Color3(0.1,0.1,0.1);
+
+		var material5 = new BABYLON.StandardMaterial("default1", scene);
+		material5.diffuseTexture = new BABYLON.Texture("assets/jupiter2.jpg", scene);
+		material5.specularColor = new BABYLON.Color3(0,0,0);
+		material5.emissiveColor = new BABYLON.Color3(0.1,0.1,0.1);
+
+		earth.material = material1;
+		moon.material = material2;
+		sun.material = material3;
+		pluto.material = material4;
+		jupiter.material= material5;
+
+		var light = new BABYLON.PointLight("dir01", new BABYLON.Vector3(-0.0, -0.0, 0.0), scene);
+		light.diffuse = new BABYLON.Color3(1.0, 1.0, 1.0);
+
+		scene.clearColor = new BABYLON.Color3(0.02,0.02,0.1);
+
+		// Show coordinate axes
+		var cylinder1 = BABYLON.Mesh.CreateCylinder("cylinder1", 0.2, 0.01, 0.01, 4, scene);
+		var cylinder2 = BABYLON.Mesh.CreateCylinder("cylinder2", 0.2, 0.01, 0.01, 4, scene, false);
+		var cylinder3 = BABYLON.Mesh.CreateCylinder("cylinder3", 0.2, 0.01, 0.01, 4, scene, false);
+    //var cylinder4 = BABYLON.Mesh.CreateCylinder("cylinder4", 0.2, 0.01, 0.01, 4, scene, false);
+
+		var cmat1 = new BABYLON.StandardMaterial("cmat1", scene);
+		var cmat2 = new BABYLON.StandardMaterial("cmat2", scene);
+		var cmat3 = new BABYLON.StandardMaterial("cmat3", scene);
+    //var cmat4 = new BABYLON.StandardMaterial("cmat4", scene);
+
+		cmat1.emissiveColor = new BABYLON.Color3(1,0,0); // x-axis: red
+		cmat2.emissiveColor = new BABYLON.Color3(1,1,0); // y-axis: yellow
+		cmat3.emissiveColor = new BABYLON.Color3(0,1,0); // z-axis: green
+		cylinder1.material = cmat1;
+		cylinder2.material = cmat2;
+		cylinder3.material = cmat3;
+
+		cylinder1.position.x = 0.1;
+		cylinder1.rotation.z = 0.5*Math.PI;
+		cylinder2.position.y = 0.1;
+		cylinder2.rotation.z = 0.0;
+		cylinder3.position.z = 0.1;
+		cylinder3.rotation.x = 0.5*Math.PI;
+		// END SETUP SCENE
+
+		// Set initial earth position
+
+		pluto.position.x=earth.position.x+1;
+		pluto.position.y=earth.position.x+1;
+		pluto.position.z=earth.position.x+1;
+
+		jupiter.position.x= sun.position.x+2;
+		jupiter.position.y= sun.position.y+2;
+		jupiter.position.z= sun.position.z+2;
+
+		earth.position.x = 1.0;
+		earth.position.y = 0.0;
+		earth.position.z = 0.0;
+
+		// Set initial moon position
+		moon.position.x = earth.position.x - 0.5;
+		moon.position.y = earth.position.y;
+		moon.position.z = earth.position.z;
+
+		var d = new Date();
+		var startTime = d.getTime();
+		var lastTime  = startTime;
+
+		// helpful constants
+		var sim_year  = 4.0;                        // one simulated year in minutes
+		var sim_month = sim_year / 27.3;			// one simulated months in minutes
+		var sim_day   = sim_year / 365.24;			// one simulated year in minutes
+		var min2ms  = 1000.0 * 60.0;        		// milliseconds in minutes
+
+		var moon_local_pos = new BABYLON.Vector3(-1.0,0,0);
+
+		// Hintergrundbild
+
+		var skybox = BABYLON.Mesh.CreateBox("skyBox", 1000.0, scene);
+		var skyboxMaterial = new BABYLON.StandardMaterial("skyBox", scene);
+		skyboxMaterial.backFaceCulling = false;
+		skyboxMaterial.reflectionTexture = new BABYLON.CubeTexture("skybox/skybox", scene);
+		skyboxMaterial.reflectionTexture.coordinatesMode = BABYLON.Texture.SKYBOX_MODE;
+		skyboxMaterial.diffuseColor = new BABYLON.Color3(0, 0, 0);
+		skyboxMaterial.specularColor = new BABYLON.Color3(0, 0, 0);
+		skybox.material = skyboxMaterial;
+
+	// scene.beforeRender called again and again (max 60 times a second)
+	scene.beforeRender = function() {
+			var d 		  = new Date();
+			var time      = d.getTime();        // get milliseconds since 1970
+			var elapsed_t = time - startTime;   // milliseconds since start
+			var delta_t   = lastTime - time;    // milliseconds since last call
+			lastTime      = time;
+
+			// Update earth position and rotation
+
+			var sekunden = 10*60; // Sekunden für Erddrehung um die Sonne
+
+			var grad = -2*Math.PI*elapsed_t/(sekunden*1000);
+
+			earth.position.x=2;
+			earth.position.z=0;
+
+			var tempearth=earth.position.x;
+			var tempearth_z=earth.position.z;
+
+			earth.position.x = Math.cos(grad)*tempearth+(Math.sin(grad)*earth.position.z);
+			earth.position.y = earth.position.y;
+			earth.position.z = -Math.sin(grad)*tempearth+Math.cos(grad)*earth.position.z;
+
+			earthRotation=365.24; // earth Umdrehungen um sich selbst pro umdrehung um die Sonne
+
+			earth.rotation.y =(earthRotation+1)*grad;
+
+			//camera.target=new BABYLON.Vector3(earth.position.x,earth.position.y,earth.position.z);
+
+			// Update moon position and rotation
+
+			var moonSekunden = 27.3/(365.24/60);   // 60 => 365.24 Tage x => 27.3 Tage
+			var moonGrad = -(2*Math.PI*elapsed_t/(moonSekunden*1000));		 // ohne 27.3 eine Umrundung in 1 minute
+
+			moon.position.x=tempearth-0.9;
+			moon.position.z=tempearth_z;
+
+			var tempmoon=moon.position.x;
+			var temp2 = moon.position.z;
+
+			moon.position.x = earth.position.x+Math.cos(moonGrad)*(tempmoon-tempearth)+Math.sin(moonGrad)*(temp2-tempearth_z);
+			moon.position.y = moon.position.y;
+			moon.position.z = earth.position.z-Math.sin(moonGrad)*(tempmoon-tempearth)+Math.cos(moonGrad)*(temp2-tempearth_z);
+
+			moon.rotation.y = (moonGrad);
+
+
+			var plutoRotationSpeed = -2*Math.PI*elapsed_t/(2.48*60*1000); // 2.48 Jahre (~905 Tages) eigentlich 248 Jahre
+			pluto.position.x=2;
+			pluto.position.z=0;
+
+			var temppluto_x=pluto.position.x;
+			var temppluto_z=pluto.position.z;
+
+			pluto.position.x = Math.cos(plutoRotationSpeed)*temppluto_x+(Math.sin(plutoRotationSpeed)*pluto.position.z);
+			pluto.position.y = pluto.position.y;
+			pluto.position.z = -Math.sin(plutoRotationSpeed)*temppluto_x+Math.cos(plutoRotationSpeed)*pluto.position.z;
+
+			pluto.rotation.y += 0.05;
+
+			var jupiterRotationSpeed = -2*Math.PI*elapsed_t/(11.86*60*1000); // 11.86 Jahre (~4331 Tage)
+
+			jupiter.position.x=1;
+			jupiter.position.z=3;
+
+			var tempjupiter_x=jupiter.position.x;
+			var tempjupiter_z=jupiter.position.z;
+
+			jupiter.position.x = Math.cos(jupiterRotationSpeed)*tempjupiter_x+(Math.sin(jupiterRotationSpeed)*jupiter.position.z);
+			jupiter.position.y = jupiter.position.y;
+			jupiter.position.z = -Math.sin(jupiterRotationSpeed)*tempjupiter_x+Math.cos(jupiterRotationSpeed)*jupiter.position.z;
+
+			jupiter.rotation.y += 0.1;
+
+		};
+
+        scene.activeCamera.attachControl(canvas);
+		// Render loop
+		var renderLoop = function () {
+			// Start new frame
+			engine.beginFrame();
+
+			scene.render();
+      //#018899
+      //#999999
+      //#fae
+			// Present
+			engine.endFrame();
+
+			// Register new frame
+			BABYLON.Tools.QueueNewFrame(renderLoop);
+		};
+		BABYLON.Tools.QueueNewFrame(renderLoop);
+
+        // Resize
+        window.addEventListener("resize", function () {
+            engine.resize();
+        });
+	};
+	</script>
+</body>
+</html>
